@@ -10,6 +10,7 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "journal_entry_id",
   "column_break_1",
   "posting_date",
   "set_posting_time",
@@ -33,7 +34,11 @@
   "payment_reference",
   "clearance_date",
   "status",
-  "amended_from"
+  "amended_from",
+  "vehicle_log_section",
+  "employee_name",
+  "license_plate",
+  "vehicle_log_id"
  ],
  "fields": [
   {
@@ -198,11 +203,39 @@
    "fieldname": "set_posting_time",
    "fieldtype": "Check",
    "label": "Edit Posting Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "journal_entry_id",
+   "fieldtype": "Link",
+   "label": "Journal Entry ID",
+   "options": "Journal Entry"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "vehicle_log_section",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Log"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "license_plate",
+   "fieldtype": "Data",
+   "label": "License Plate"
+  },
+  {
+   "fieldname": "vehicle_log_id",
+   "fieldtype": "Data",
+   "label": "Vehicle log ID"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2022-10-19 10:41:58.393012",
+ "modified": "2025-11-06 13:06:38.530292",
  "modified_by": "Administrator",
  "module": "Expense Request",
  "name": "Expense Entry",
@@ -258,6 +291,7 @@
   }
  ],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
