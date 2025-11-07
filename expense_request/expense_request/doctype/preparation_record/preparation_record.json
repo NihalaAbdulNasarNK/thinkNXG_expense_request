@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-07 12:25:33.840557",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "civil_id",
+  "nationality",
+  "residency_expiry_date",
+  "medical_expiry_date",
+  "civil_id_expiry_date",
+  "acls_expiry_date",
+  "mol_contract_expiry_date",
+  "renewal_or_extend",
+  "ref_doctype",
+  "ref_name",
+  "no_of_years",
+  "payment_request_column",
+  "acls_amount",
+  "medical_amount",
+  "bls_amount",
+  "civil_id_amount",
+  "mol_contract_amount",
+  "total_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "civil_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Civil ID"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Data",
+   "label": "Nationality"
+  },
+  {
+   "fieldname": "residency_expiry_date",
+   "fieldtype": "Date",
+   "label": "BLS Expiry Date"
+  },
+  {
+   "fieldname": "medical_expiry_date",
+   "fieldtype": "Date",
+   "label": "Medical Expiry Date"
+  },
+  {
+   "fieldname": "civil_id_expiry_date",
+   "fieldtype": "Date",
+   "label": "Civil ID Expiry Date"
+  },
+  {
+   "fieldname": "acls_expiry_date",
+   "fieldtype": "Date",
+   "label": "ACLS Expiry Date"
+  },
+  {
+   "fieldname": "mol_contract_expiry_date",
+   "fieldtype": "Date",
+   "label": "MOL Contract Expiry Date"
+  },
+  {
+   "fieldname": "renewal_or_extend",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Renewal Or Extend",
+   "options": "\nRenewal\nExtend 1 month\nExtend 2 months\nExtend 3 months\nLocal Transfer\nCancellation"
+  },
+  {
+   "fieldname": "ref_doctype",
+   "fieldtype": "Link",
+   "label": "Ref Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "ref_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Ref Name",
+   "options": "ref_doctype",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.renewal_or_extend == \"Renewal\"\n",
+   "fieldname": "no_of_years",
+   "fieldtype": "Select",
+   "label": "No of Years",
+   "options": "\n1 Year\n2 Years\n3 Years"
+  },
+  {
+   "fieldname": "payment_request_column",
+   "fieldtype": "Column Break",
+   "label": "Payment Request"
+  },
+  {
+   "depends_on": "eval: doc.renewal_or_extend == \"Renewal\"\n",
+   "fieldname": "acls_amount",
+   "fieldtype": "Currency",
+   "label": "ACLS Amount"
+  },
+  {
+   "depends_on": "eval: doc.renewal_or_extend == \"Renewal\"\n",
+   "fieldname": "medical_amount",
+   "fieldtype": "Currency",
+   "label": "Medical Amount"
+  },
+  {
+   "depends_on": "eval: doc.renewal_or_extend == \"Renewal\"\n",
+   "fieldname": "bls_amount",
+   "fieldtype": "Currency",
+   "label": "BLS Amount"
+  },
+  {
+   "fieldname": "civil_id_amount",
+   "fieldtype": "Currency",
+   "label": "Civil ID Amount"
+  },
+  {
+   "fieldname": "mol_contract_amount",
+   "fieldtype": "Currency",
+   "label": "MOL Contract Amount"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-11-07 12:43:03.815685",
+ "modified_by": "Administrator",
+ "module": "Expense Request",
+ "name": "Preparation Record",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
