@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-07 11:54:50.301487",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "punch_in_section",
+  "employee",
+  "employee_name",
+  "log_type",
+  "column_break_kwpa",
+  "time_in",
+  "location_device_id",
+  "punch_out_section",
+  "log_type_out",
+  "time_out",
+  "device_id_out",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "punch_in_section",
+   "fieldtype": "Section Break",
+   "label": "Punch IN"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "default": "In",
+   "fieldname": "log_type",
+   "fieldtype": "Select",
+   "label": "Log Type",
+   "options": "In\nOut"
+  },
+  {
+   "fieldname": "column_break_kwpa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "time_in",
+   "fieldtype": "Datetime",
+   "label": "Time IN"
+  },
+  {
+   "fieldname": "location_device_id",
+   "fieldtype": "Data",
+   "label": "Location/ Device ID"
+  },
+  {
+   "fieldname": "punch_out_section",
+   "fieldtype": "Section Break",
+   "label": "Punch OUT"
+  },
+  {
+   "default": "Out",
+   "fieldname": "log_type_out",
+   "fieldtype": "Select",
+   "label": "Log Type Out",
+   "options": "In\nOut"
+  },
+  {
+   "fieldname": "time_out",
+   "fieldtype": "Datetime",
+   "label": "Time OUT"
+  },
+  {
+   "fieldname": "device_id_out",
+   "fieldtype": "Datetime",
+   "label": "Device ID Out"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Manual Employee Checkin",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-11-07 12:06:36.579142",
+ "modified_by": "Administrator",
+ "module": "Expense Request",
+ "name": "Manual Employee Checkin",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

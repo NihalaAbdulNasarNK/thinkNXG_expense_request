@@ -1,0 +1,92 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-07 12:19:10.187261",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category",
+  "renewal_or_extend",
+  "no_of__years",
+  "amount",
+  "work_permit_amount",
+  "medical_insurance_amount",
+  "column_break_kqee",
+  "residency_stamp_amount",
+  "civil_id_amount",
+  "total_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "\nWork Permit\nMedical Insurance\nResidency Stamp\nCivil ID\nContract"
+  },
+  {
+   "fieldname": "renewal_or_extend",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Renewal Or Extend",
+   "options": "\nRenewal\nExtend 1 month\nExtend 2 months\nExtend 3 months\nLocal Transfer\nCancellation"
+  },
+  {
+   "fieldname": "no_of__years",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "No of  Years",
+   "options": "\n1 Year\n2 Years\n3 Years"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount"
+  },
+  {
+   "fieldname": "work_permit_amount",
+   "fieldtype": "Currency",
+   "label": "Work Permit Amount"
+  },
+  {
+   "fieldname": "medical_insurance_amount",
+   "fieldtype": "Currency",
+   "label": "Medical Insurance Amount"
+  },
+  {
+   "fieldname": "column_break_kqee",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "residency_stamp_amount",
+   "fieldtype": "Currency",
+   "label": "Residency Stamp Amount"
+  },
+  {
+   "fieldname": "civil_id_amount",
+   "fieldtype": "Currency",
+   "label": "Civil ID Amount"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-11-07 12:24:43.152341",
+ "modified_by": "Administrator",
+ "module": "Expense Request",
+ "name": "GRD Renewal Extension Cost",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
