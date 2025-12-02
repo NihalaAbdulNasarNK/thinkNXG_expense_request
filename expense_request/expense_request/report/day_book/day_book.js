@@ -33,6 +33,13 @@ frappe.query_reports["Day Book"] = {
                 return frappe.db.get_link_options("Account", txt);
             },
             "description": __("By default shows Main Cash, Petty Cash, and all Bank accounts. Add more if required.")
-        }
+        },
+         {
+            "fieldname": "cost_center",
+            "label": __("Cost Center"),
+            "fieldtype": "Link",
+            "options": "Cost Center",
+            "default": frappe.defaults.get_user_default("Cost Center")
+        },
     ]
 };
