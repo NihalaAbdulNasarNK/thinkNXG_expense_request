@@ -39,6 +39,13 @@ frappe.query_reports["Day Book (Simple)"] = {
             "get_data": function(txt) {
                 return frappe.db.get_link_options("Account", txt);
             },
+        },
+        {
+            "fieldname":"cost_center",
+            "label": __("Cost Center"),
+            "fieldtype": "Link",
+            "options": "Cost Center",
+           
         }
 
 	]

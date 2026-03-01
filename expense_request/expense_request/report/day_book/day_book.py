@@ -15,6 +15,8 @@ def execute(filters=None):
 def get_accounts(filters):
     """Return default or selected accounts for the selected company."""
     company = filters.get("company")
+
+    cost_center = filters.get("cost_center")
     
     if filters.get("accounts"):
         # MultiSelectList comes as JSON string → parse it
@@ -22,14 +24,21 @@ def get_accounts(filters):
 
     accounts = []
 
-    # Get all Cash accounts for the company
+    # Get all Cash accounts for the company with optional cost center filter
+    cash_filters = {"account_type": "Cash", "company": company}
+    if cost_center:
+        cash_filters["cost_center"] = cost_center
     cash_accounts = frappe.get_all(
         "Account",
         filters={"account_type": "Cash", "company": company},
         pluck="name"
     )
     accounts.extend(cash_accounts)
-    # Add all Bank accounts for the company
+
+    # Add all Bank accounts for the company with optional cost center filter
+    bank_filters = {"account_type": "Bank", "company": company}
+    if cost_center:
+        bank_filters["cost_center"] = cost_center
     bank_accounts = frappe.get_all(
         "Account",
         filters={"account_type": "Bank", "company": company},
@@ -68,6 +77,10 @@ def get_data(filters, accounts):
         conditions += " and gl.company = %(company)s"
         values.update({"company": filters["company"]})
 
+    if filters.get("cost_center"):
+        conditions += " and gl.cost_center = %(cost_center)s"
+        values.update({"cost_center": filters["cost_center"]})
+
     data = []
 
     # Get posting dates
@@ -82,12 +95,20 @@ def get_data(filters, accounts):
         posting_date = d.posting_date
         # For each selected account
         for acc in accounts:
+
+            query_values = [posting_date, acc]
+            if filters.get("company"):
+                query_values.append(filters.get("company"))
+            if filters.get("cost_center"):
+                query_values.append(filters.get("cost_center"))
+
             debit, credit = frappe.db.sql(f"""
                 select sum(gl.debit), sum(gl.credit)
                 from `tabGL Entry` gl
                 where gl.posting_date=%s and gl.account=%s and gl.docstatus=1
-                {(" and gl.company=%s" if filters.get("company") else "")}
-            """, (posting_date, acc, filters.get("company")) if filters.get("company") else (posting_date, acc))[0]
+                {(" and gl.company=%s" if filters.get("company") else "")} {(" and gl.cost_center=%s" if filters.get("cost_center") else "")}
+            """, tuple(query_values))[0]
+            # (posting_date, acc, filters.get("company","cost_center")) if filters.get("company","cost_center") else (posting_date, acc))[0]
 
             debit = flt(debit)
             credit = flt(credit)
@@ -107,25 +128,50 @@ def get_data(filters, accounts):
 
         # Only when no account filter is applied
         if not filters.get("accounts"):
-            sales = frappe.db.sql("""
+            # sales = frappe.db.sql("""
+            #     select sum(base_grand_total) from `tabSales Invoice`
+            #     where posting_date=%s and docstatus=1 and is_return=0
+            # """, posting_date)[0][0] or 0
+
+            # purchase = frappe.db.sql("""
+            #     select sum(base_grand_total) from `tabPurchase Invoice`
+            #     where posting_date=%s and docstatus=1 and is_return=0
+            # """, posting_date)[0][0] or 0
+
+            # sales_return = frappe.db.sql("""
+            #     select sum(base_grand_total) from `tabSales Invoice`
+            #     where posting_date=%s and docstatus=1 and is_return=1
+            # """, posting_date)[0][0] or 0
+
+            # purchase_return = frappe.db.sql("""
+            #     select sum(base_grand_total) from `tabPurchase Invoice`
+            #     where posting_date=%s and docstatus=1 and is_return=1
+            # """, posting_date)[0][0] or 0
+
+            cc_condition = " and cost_center=%s" if filters.get("cost_center") else ""
+            summary_values = [posting_date]
+            if filters.get("cost_center"):
+                summary_values.append(filters.get("cost_center"))
+
+            sales = frappe.db.sql(f"""
                 select sum(base_grand_total) from `tabSales Invoice`
-                where posting_date=%s and docstatus=1 and is_return=0
-            """, posting_date)[0][0] or 0
+                where posting_date=%s and docstatus=1 and is_return=0 {cc_condition}
+            """, tuple(summary_values))[0][0] or 0
 
-            purchase = frappe.db.sql("""
+            purchase = frappe.db.sql(f"""
                 select sum(base_grand_total) from `tabPurchase Invoice`
-                where posting_date=%s and docstatus=1 and is_return=0
-            """, posting_date)[0][0] or 0
+                where posting_date=%s and docstatus=1 and is_return=0 {cc_condition}
+            """, tuple(summary_values))[0][0] or 0
 
-            sales_return = frappe.db.sql("""
+            sales_return = frappe.db.sql(f"""
                 select sum(base_grand_total) from `tabSales Invoice`
-                where posting_date=%s and docstatus=1 and is_return=1
-            """, posting_date)[0][0] or 0
+                where posting_date=%s and docstatus=1 and is_return=1 {cc_condition}
+            """, tuple(summary_values))[0][0] or 0
 
-            purchase_return = frappe.db.sql("""
+            purchase_return = frappe.db.sql(f"""
                 select sum(base_grand_total) from `tabPurchase Invoice`
-                where posting_date=%s and docstatus=1 and is_return=1
-            """, posting_date)[0][0] or 0
+                where posting_date=%s and docstatus=1 and is_return=1 {cc_condition}
+            """, tuple(summary_values))[0][0] or 0
 
             # Append summary rows
             data.append({

@@ -79,7 +79,7 @@ function set_queries(frm) {
     frm.set_query("expense_account", 'expenses', () => {
         return {
             filters: [
-                ["Account", "root_type", "=", "Expense"],
+                // ["Account", "root_type", "=", "Expense"],
                 ["Account", "is_group", "=", "0"],
                 ["Account", "company", "=", frm.doc.company]
             ]
