@@ -14,7 +14,9 @@ frappe.query_reports["Direct Cash Flow"] = {
             label: "Company",
             fieldtype: "Link",
             options: "Company",
-            reqd: 1
+            reqd: 1,
+            default: frappe.defaults.get_user_default("Company") //default company
+
         },
 
         {
@@ -37,7 +39,8 @@ frappe.query_reports["Direct Cash Flow"] = {
             label: "From Fiscal Year",
             fieldtype: "Link",
             options: "Fiscal Year",
-            depends_on: "eval:doc.filter_based_on=='Fiscal Year'"
+            depends_on: "eval:doc.filter_based_on=='Fiscal Year'",
+            default: (new Date()).getFullYear().toString()  // current year
         },
 
         {
@@ -45,21 +48,30 @@ frappe.query_reports["Direct Cash Flow"] = {
             label: "To Fiscal Year",
             fieldtype: "Link",
             options: "Fiscal Year",
-            depends_on: "eval:doc.filter_based_on=='Fiscal Year'"
+            depends_on: "eval:doc.filter_based_on=='Fiscal Year'",
+            "default": (new Date()).getFullYear().toString()  // current year
         },
 
         {
             fieldname: "period_start_date",
             label: "Start Date",
             fieldtype: "Date",
-            depends_on: "eval:doc.filter_based_on=='Date Range'"
+            depends_on: "eval:doc.filter_based_on=='Date Range'",
+            default: function() {
+                let today = new Date();
+                return frappe.datetime.obj_to_str(new Date(today.getFullYear(), today.getMonth(), 1));
+            }()
         },
 
         {
             fieldname: "period_end_date",
             label: "End Date",
             fieldtype: "Date",
-            depends_on: "eval:doc.filter_based_on=='Date Range'"
+            depends_on: "eval:doc.filter_based_on=='Date Range'",
+            default: function() {
+                let today = new Date();
+                return frappe.datetime.obj_to_str(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+            }()
         },
 
         {
