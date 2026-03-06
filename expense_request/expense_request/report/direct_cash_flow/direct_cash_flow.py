@@ -123,10 +123,12 @@ def get_data(filters, period_list, company):
                 tax_payments += credit
 
             # ---------------- Investing ----------------
-            elif credit > 0 and other_root == "Asset":
-                asset_purchase += credit
-            elif debit > 0 and other_root == "Asset":
-                asset_sale += debit
+            elif other_root == "Asset" and other_type == "Fixed Assets":
+                if row.account in cash_accounts:
+                    if debit > 0:
+                        asset_sale += debit
+                    elif credit > 0:
+                        asset_purchase += credit
 
             # ---------------- Financing ----------------
             elif credit > 0 and other_type == "Loan":
