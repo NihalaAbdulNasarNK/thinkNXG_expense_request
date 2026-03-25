@@ -1,179 +1,339 @@
+
 import frappe
+from erpnext.accounts.report.financial_statements import get_period_list, get_columns
 
 
 def execute(filters=None):
 	if not filters:
 		filters = {}
 
-	filter_based_on = filters.get("filter_based_on")
-	fiscal_year = filters.get("fiscal_year")
 	company = filters.get("company")
 
-	if filter_based_on == "Fiscal Year" and fiscal_year:
-		fy = frappe.db.get_value("Fiscal Year", fiscal_year, ["year_start_date", "year_end_date"], as_dict=True)
-		from_date = str(fy.year_start_date)
-		to_date = str(fy.year_end_date)
-	else:
-		from_date = filters.get("period_start_date")
-		to_date = filters.get("period_end_date")
+	# ---------------- CONDITIONS ----------------
+	conditions = get_conditions(filters)
 
-	accounts = frappe.get_all("Account", filters={"company": company, "account_type": ["in", ["Cash", "Bank"]]}, pluck="name")
-	cash_accounts = tuple(accounts) if accounts else ("__dummy__",)
+	# ---------------- PERIOD ----------------
+	period_list = get_period_list(
+		filters.get("from_fiscal_year"),
+		filters.get("to_fiscal_year"),
+		filters.get("period_start_date"),
+		filters.get("period_end_date"),
+		filters.get("filter_based_on"),
+		filters.get("periodicity"),
+		company=company,
+	)
 
-	cash_only = tuple(frappe.get_all("Account", filters={"company": company, "account_type": "Cash"}, pluck="name")) or ("__dummy__",)
-	bank_only = tuple(frappe.get_all("Account", filters={"company": company, "account_type": "Bank"}, pluck="name")) or ("__dummy__",)
+	columns = get_columns(filters.get("periodicity"), period_list, False, company)
 
-	# Opening Balances
-	# opening_cash = frappe.db.sql("SELECT SUM(debit - credit) FROM `tabGL Entry` WHERE company=%s AND posting_date < %s AND account IN %s AND is_cancelled=0", (company, from_date, cash_only))[0][0] or 0
-	# opening_bank = frappe.db.sql("SELECT SUM(debit - credit) FROM `tabGL Entry` WHERE company=%s AND posting_date < %s AND account IN %s AND is_cancelled=0", (company, from_date, bank_only))[0][0] or 0
-	opening_cash = frappe.db.sql("""
-		SELECT COALESCE(SUM(debit - credit), 0)
-		FROM `tabGL Entry`
-		WHERE company = %(company)s
-		AND account IN %(accounts)s
-		AND is_cancelled = 0
-		AND (
-			posting_date < %(from_date)s
-			OR is_opening = 'Yes'
-		)
-	""", {
-		"company": company,
-		"from_date": from_date,
-		"accounts": cash_only
-	})[0][0]
-	opening_bank = frappe.db.sql("""
-		SELECT COALESCE(SUM(debit - credit), 0)
-		FROM `tabGL Entry`
-		WHERE company = %(company)s
-		AND account IN %(accounts)s
-		AND is_cancelled = 0
-		AND (
-			posting_date < %(from_date)s
-			OR is_opening = 'Yes'
-		)
-	""", {
-		"company": company,
-		"from_date": from_date,
-		"accounts": bank_only
-	})[0][0]
-	opening_balance = opening_cash + opening_bank
+	# ---------------- ACCOUNTS ----------------
+	cash_accounts = tuple(frappe.get_all("Account",
+		filters={"company": company, "account_type": "Cash"},
+		pluck="name")) or ("__dummy__",)
 
-	# Totals
-	cash_inflow = frappe.db.sql("SELECT SUM(debit) FROM `tabGL Entry` WHERE company=%s AND posting_date BETWEEN %s AND %s AND account IN %s AND debit > 0 AND is_cancelled=0 AND is_opening='No'", (company, from_date, to_date, cash_only))[0][0] or 0
-	cash_outflow = frappe.db.sql("SELECT SUM(credit) FROM `tabGL Entry` WHERE company=%s AND posting_date BETWEEN %s AND %s AND account IN %s AND credit > 0 AND is_cancelled=0 AND is_opening='No'", (company, from_date, to_date, cash_only))[0][0] or 0
-	bank_inflow = frappe.db.sql("SELECT SUM(debit) FROM `tabGL Entry` WHERE company=%s AND posting_date BETWEEN %s AND %s AND account IN %s AND debit > 0 AND is_cancelled=0 AND is_opening='No'", (company, from_date, to_date, bank_only))[0][0] or 0
-	bank_outflow = frappe.db.sql("SELECT SUM(credit) FROM `tabGL Entry` WHERE company=%s AND posting_date BETWEEN %s AND %s AND account IN %s AND credit > 0 AND is_cancelled=0 AND is_opening='No'", (company, from_date, to_date, bank_only))[0][0] or 0
+	bank_accounts = tuple(frappe.get_all("Account",
+		filters={"company": company, "account_type": "Bank"},
+		pluck="name")) or ("__dummy__",)
 
-	# Item wise breakdown by opposite account
-	cash_inflow_items = frappe.db.sql("""
-		SELECT opp_acc.name as acc_name, SUM(gle.debit) as total
-		FROM `tabGL Entry` gle
-		LEFT JOIN `tabAccount` acc ON gle.account = acc.name
-		JOIN `tabGL Entry` opp ON opp.voucher_no = gle.voucher_no AND opp.name != gle.name AND opp.account NOT IN %s
-		LEFT JOIN `tabAccount` opp_acc ON opp.account = opp_acc.name
-		WHERE gle.company=%s AND gle.posting_date BETWEEN %s AND %s
-		AND gle.account IN %s AND gle.debit > 0 AND gle.is_cancelled=0 AND gle.is_opening='No'
-		GROUP BY opp_acc.name
-		ORDER BY total DESC
-	""", (cash_accounts, company, from_date, to_date, cash_only), as_dict=True)
+	all_cash_bank = cash_accounts + bank_accounts
 
-	cash_outflow_items = frappe.db.sql("""
-		SELECT opp_acc.name as acc_name, SUM(gle.credit) as total
-		FROM `tabGL Entry` gle
-		LEFT JOIN `tabAccount` acc ON gle.account = acc.name
-		JOIN `tabGL Entry` opp ON opp.voucher_no = gle.voucher_no AND opp.name != gle.name AND opp.account NOT IN %s
-		LEFT JOIN `tabAccount` opp_acc ON opp.account = opp_acc.name
-		WHERE gle.company=%s AND gle.posting_date BETWEEN %s AND %s
-		AND gle.account IN %s AND gle.credit > 0 AND gle.is_cancelled=0 AND gle.is_opening='No'
-		GROUP BY opp_acc.name
-		ORDER BY total DESC
-	""", (cash_accounts, company, from_date, to_date, cash_only), as_dict=True)
+	data = []
 
-	bank_inflow_items = frappe.db.sql("""
-		SELECT opp_acc.name as acc_name, SUM(gle.debit) as total
-		FROM `tabGL Entry` gle
-		LEFT JOIN `tabAccount` acc ON gle.account = acc.name
-		JOIN `tabGL Entry` opp ON opp.voucher_no = gle.voucher_no AND opp.name != gle.name AND opp.account NOT IN %s
-		LEFT JOIN `tabAccount` opp_acc ON opp.account = opp_acc.name
-		WHERE gle.company=%s AND gle.posting_date BETWEEN %s AND %s
-		AND gle.account IN %s AND gle.debit > 0 AND gle.is_cancelled=0 AND gle.is_opening='No'
-		GROUP BY opp_acc.name
-		ORDER BY total DESC
-	""", (cash_accounts, company, from_date, to_date, bank_only), as_dict=True)
+	# ---------------- OPENING ----------------
+	open_cash = get_opening(company, cash_accounts, period_list, filters, conditions)
+	open_bank = get_opening(company, bank_accounts, period_list, filters, conditions)
+	open_total = add(open_cash, open_bank)
 
-	bank_outflow_items = frappe.db.sql("""
-		SELECT opp_acc.name as acc_name, SUM(gle.credit) as total
-		FROM `tabGL Entry` gle
-		LEFT JOIN `tabAccount` acc ON gle.account = acc.name
-		JOIN `tabGL Entry` opp ON opp.voucher_no = gle.voucher_no AND opp.name != gle.name AND opp.account NOT IN %s
-		LEFT JOIN `tabAccount` opp_acc ON opp.account = opp_acc.name
-		WHERE gle.company=%s AND gle.posting_date BETWEEN %s AND %s
-		AND gle.account IN %s AND gle.credit > 0 AND gle.is_cancelled=0 AND gle.is_opening='No'
-		GROUP BY opp_acc.name
-		ORDER BY total DESC
-	""", (cash_accounts, company, from_date, to_date, bank_only), as_dict=True)
+	# ---------------- FLOWS ----------------
+	cash_in = get_total(company, cash_accounts, "debit", period_list, filters, conditions)
+	cash_out = get_total(company, cash_accounts, "credit", period_list, filters, conditions)
 
-	closing_cash = opening_cash + cash_inflow - cash_outflow
-	closing_bank = opening_bank + bank_inflow - bank_outflow
-	closing_balance = closing_cash + closing_bank
-	net_movement = (cash_inflow + bank_inflow) - (cash_outflow + bank_outflow)
+	bank_in = get_total(company, bank_accounts, "debit", period_list, filters, conditions)
+	bank_out = get_total(company, bank_accounts, "credit", period_list, filters, conditions)
 
-	columns = [
-		{"label": "Particulars", "fieldname": "particulars", "fieldtype": "Data", "width": 500},
-		{"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200},
+	net_cash = subtract(cash_in, cash_out)
+	net_bank = subtract(bank_in, bank_out)
+	net_total = add(net_cash, net_bank)
+	# ensure total is sum of all periods
+	net_total["total"] = sum(
+		net_total.get(p["key"], 0) for p in period_list
+	)
+
+	close_cash = add(open_cash, net_cash)
+	close_bank = add(open_bank, net_bank)
+	close_total = add(close_cash, close_bank)
+	last_key = period_list[-1]["key"]
+	close_total["total"] = close_total.get(last_key, 0)
+
+	# ---------------- TREE REPORT ----------------
+	if filters.get("show_opening_and_closing_balance"):
+		data.append(group_row("Opening Balance", open_total))
+		data.append(row("Cash Opening Balance", open_cash, 1))
+		data.append(row("Bank Opening Balance", open_bank, 1))
+
+	data.append(group_row("Cash Inflow", cash_in))
+	data.extend(get_children(company, cash_accounts, all_cash_bank, "debit", period_list, 1, filters, conditions))
+
+	data.append(group_row("Cash Outflow", negate(cash_out)))
+	data.extend(get_children(company, cash_accounts, all_cash_bank, "credit", period_list, 1, filters, conditions, negate_vals=True))
+
+	data.append(group_row("Bank Inflow", bank_in))
+	data.extend(get_children(company, bank_accounts, all_cash_bank, "debit", period_list, 1, filters, conditions))
+
+	data.append(group_row("Bank Outflow", negate(bank_out)))
+	data.extend(get_children(company, bank_accounts, all_cash_bank, "credit", period_list, 1, filters, conditions, negate_vals=True))
+
+	data.append(row("Net Cash Movement", net_cash, 0, 1))
+	data.append(row("Net Bank Movement", net_bank, 0, 1))
+	data.append(row("Net Total Movement", net_total, 0, 1))
+
+	if filters.get("show_opening_and_closing_balance"):
+		data.append(group_row("Closing Balance", close_total))
+		data.append(row("Cash Closing Balance", close_cash, 1))
+		data.append(row("Bank Closing Balance", close_bank, 1))
+
+	chart = get_chart(period_list, cash_in, cash_out, bank_in, bank_out)
+
+	report_summary = get_report_summary(
+		company, open_total, cash_in, cash_out,
+		bank_in, bank_out, net_total, close_total
+	)
+
+	return columns, data, None, chart, report_summary
+
+
+# ================= CONDITIONS =================
+
+def get_conditions(filters):
+	conditions = ""
+
+	if filters.get("cost_center"):
+		conditions += " AND gle.cost_center = %(cost_center)s"
+
+	if filters.get("project"):
+		conditions += " AND gle.project = %(project)s"
+
+	if filters.get("finance_book"):
+		conditions += " AND gle.finance_book = %(finance_book)s"
+
+	if not filters.get("include_default_book_entries"):
+		conditions += " AND (gle.finance_book IS NULL OR gle.finance_book = '')"
+
+	return conditions
+
+
+# ================= TOTAL =================
+
+def get_total(company, accounts, field, period_list, filters, conditions):
+	out = {}
+
+	for p in period_list:
+		val = frappe.db.sql(f"""
+			SELECT COALESCE(SUM(gle.{field}),0)
+			FROM `tabGL Entry` gle
+			WHERE gle.company=%(company)s
+			AND gle.account IN %(accounts)s
+			AND gle.posting_date BETWEEN %(from)s AND %(to)s
+			AND gle.{field} > 0
+			AND gle.is_cancelled=0
+			AND gle.is_opening='No'
+			{conditions}
+		""", {
+			"company": company,
+			"accounts": accounts,
+			"from": p["from_date"],
+			"to": p["to_date"],
+			**filters
+		})[0][0]
+
+		out[p["key"]] = val
+
+	out["total"] = sum(out.values())
+	return out
+
+
+# ================= OPENING =================
+
+def get_opening(company, accounts, period_list, filters, conditions):
+	out = {}
+
+	for p in period_list:
+		val = frappe.db.sql(f"""
+			SELECT COALESCE(SUM(gle.debit - gle.credit),0)
+			FROM `tabGL Entry` gle
+			WHERE gle.company=%(company)s
+			AND gle.account IN %(acc)s
+			AND gle.is_cancelled=0
+			AND (gle.posting_date < %(date)s OR gle.is_opening='Yes')
+			{conditions}
+		""", {
+			"company": company,
+			"acc": accounts,
+			"date": p["from_date"],
+			**filters
+		})[0][0]
+
+		out[p["key"]] = val
+
+	# out["total"] = sum(out.values())
+	open_last_key = period_list[-1]["key"]
+	out["total"] = out.get(open_last_key, 0)
+	return out
+
+
+# ================= CHILDREN =================
+
+def get_children(company, main_accounts, exclude_accounts, field, period_list, indent, filters, conditions, negate_vals=False):
+	rows = []
+	data = {}
+
+	for p in period_list:
+		res = frappe.db.sql(f"""
+			SELECT opp.account, SUM(gle.{field}) as amount
+			FROM `tabGL Entry` gle
+			JOIN `tabGL Entry` opp
+				ON gle.voucher_no = opp.voucher_no
+				AND gle.name != opp.name
+				AND opp.account NOT IN %(exclude)s
+			WHERE gle.company=%(company)s
+			AND gle.account IN %(main)s
+			AND gle.posting_date BETWEEN %(from)s AND %(to)s
+			AND gle.{field} > 0
+			AND gle.is_cancelled=0
+			AND gle.is_opening='No'
+			{conditions}
+			GROUP BY gle.voucher_no, opp.account
+		""", {
+			"company": company,
+			"main": main_accounts,
+			"exclude": exclude_accounts,
+			"from": p["from_date"],
+			"to": p["to_date"],
+			**filters
+		}, as_dict=True)
+
+		for r in res:
+			data.setdefault(r.account, {}).setdefault(p["key"], 0)
+			data[r.account][p["key"]] += r.amount
+
+	for acc in data:
+		data[acc]["total"] = sum(data[acc].values())
+
+	for acc, val in sorted(data.items(), key=lambda x: -x[1]["total"]):
+		if negate_vals:
+			val = {k: -v for k, v in val.items()}
+		rows.append(row(acc, val, indent))
+
+	return rows
+
+#========================= CHART =========================
+def get_chart(period_list, cash_in, cash_out, bank_in, bank_out):
+	labels = [p["label"] for p in period_list]
+
+	return {
+		"data": {
+			"labels": labels,
+			"datasets": [
+				{
+					"name": "Cash Inflow",
+					"values": [cash_in.get(p["key"], 0) for p in period_list],
+				},
+				{
+					"name": "Cash Outflow",
+					"values": [-cash_out.get(p["key"], 0) for p in period_list],  # NEGATIVE
+				},
+				{
+					"name": "Bank Inflow",
+					"values": [bank_in.get(p["key"], 0) for p in period_list],
+				},
+				{
+					"name": "Bank Outflow",
+					"values": [-bank_out.get(p["key"], 0) for p in period_list],  # NEGATIVE
+				},
+			],
+		},
+		"type": "bar",
+	}
+# ========================= REPORT SUMMARY ======================================
+def get_report_summary(company, open_total, cash_in, cash_out, bank_in, bank_out, net_total, close_total):
+	currency = frappe.get_cached_value("Company", company, "default_currency")
+
+	open_val = open_total.get("total", 0)
+	net_val = net_total.get("total", 0)
+	close_val = close_total.get("total", 0)
+
+	return [
+		{
+			"value": open_val,
+			"label": "Opening Balance",
+			"datatype": "Currency",
+			"indicator": "Green" if open_val >= 0 else "Red",
+			"currency": currency,
+		},
+		{
+			"value": cash_in.get("total", 0),
+			"label": "Cash Inflow",
+			"datatype": "Currency",
+			"indicator": "Green",
+			"currency": currency,
+		},
+		{
+			"value": -cash_out.get("total", 0),
+			"label": "Cash Outflow",
+			"datatype": "Currency",
+			"indicator": "Red",
+			"currency": currency,
+		},
+		{
+			"value": bank_in.get("total", 0),
+			"label": "Bank Inflow",
+			"datatype": "Currency",
+			"indicator": "Green",
+			"currency": currency,
+		},
+		{
+			"value": -bank_out.get("total", 0),
+			"label": "Bank Outflow",
+			"datatype": "Currency",
+			"indicator": "Red",
+			"currency": currency,
+		},
+		{
+			"value": net_val,
+			"label": "Net Movement",
+			"datatype": "Currency",
+			"indicator": "Green" if net_val >= 0 else "Red",
+			"currency": currency,
+		},
+		{
+			"value": close_val,
+			"label": "Closing Balance",
+			"datatype": "Currency",
+			"indicator": "Green" if close_val >= 0 else "Red",
+			"currency": currency,
+		},
 	]
 
-	data = [
-		{"particulars": "Opening Balance", "amount": opening_balance, "bold": 1},
-		{"particulars": "Cash Opening Balance", "amount": opening_cash, "indent": 1},
-		{"particulars": "Bank Opening Balance", "amount": opening_bank, "indent": 1},
-		{"particulars": "", "amount": None},
+# ================= HELPERS =================
 
-		{"particulars": "Cash Inflow", "amount": cash_inflow, "bold": 1},
-	] + [
-		{"particulars": r.acc_name, "amount": r.total, "indent": 1}
-		for r in cash_inflow_items if r.total
-	] + [
-		{"particulars": "", "amount": None},
+def row(label, values, indent=0, bold=0):
+	r = {"account_name": label, "account": label, "indent": indent, "bold": bold}
+	r.update(values or {})
+	return r
 
-		{"particulars": "Cash Outflow", "amount": -cash_outflow, "bold": 1},
-	] + [
-		{"particulars": r.acc_name, "amount": -r.total, "indent": 1}
-		for r in cash_outflow_items if r.total
-	] + [
-		{"particulars": "", "amount": None},
 
-		{"particulars": "Bank Inflow", "amount": bank_inflow, "bold": 1},
-	] + [
-		{"particulars": r.acc_name, "amount": r.total, "indent": 1}
-		for r in bank_inflow_items if r.total
-	] + [
-		{"particulars": "", "amount": None},
+def group_row(label, values):
+	r = {
+		"account_name": label,
+		"account": label,
+		"indent": 0,
+		"bold": 1,
+		"is_group": 1,
+		"expandable": 1
+	}
+	r.update(values or {})
+	return r
 
-		{"particulars": "Bank Outflow", "amount": -bank_outflow, "bold": 1},
-	] + [
-		{"particulars": r.acc_name, "amount": -r.total, "indent": 1}
-		for r in bank_outflow_items if r.total
-	] + [
-		{"particulars": "", "amount": None},
 
-		{"particulars": "Net Cash Movement", "amount": cash_inflow - cash_outflow, "bold": 1},
-		{"particulars": "Net Bank Movement", "amount": bank_inflow - bank_outflow, "bold": 1},
-		{"particulars": "Net Total Movement", "amount": net_movement, "bold": 1},
-		{"particulars": "", "amount": None},
-
-		{"particulars": "Closing Balance", "amount": closing_balance, "bold": 1},
-		{"particulars": "Cash Closing Balance", "amount": closing_cash, "indent": 1},
-		{"particulars": "Bank Closing Balance", "amount": closing_bank, "indent": 1},
-	]
-
-	summary = [
-		{"label": "Opening Balance", "value": opening_balance, "datatype": "Currency"},
-		{"label": "Cash Inflow", "value": cash_inflow, "datatype": "Currency"},
-		{"label": "Cash Outflow", "value": cash_outflow, "datatype": "Currency"},
-		{"label": "Bank Inflow", "value": bank_inflow, "datatype": "Currency"},
-		{"label": "Bank Outflow", "value": bank_outflow, "datatype": "Currency"},
-		{"label": "Closing Balance", "value": closing_balance, "datatype": "Currency"},
-	]
-
-	return columns, data, None, None, summary
+def add(a, b): return {k: a.get(k, 0) + b.get(k, 0) for k in set(a) | set(b)}
+def subtract(a, b): return {k: a.get(k, 0) - b.get(k, 0) for k in set(a) | set(b)}
+def negate(a): return {k: -v for k, v in a.items()}
