@@ -208,6 +208,7 @@
    "allow_on_submit": 1,
    "fieldname": "journal_entry_id",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Journal Entry ID",
    "options": "Journal Entry"
   },
@@ -235,7 +236,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-06 13:06:38.530292",
+ "modified": "2025-12-18 09:10:48.164208",
  "modified_by": "Administrator",
  "module": "Expense Request",
  "name": "Expense Entry",
@@ -291,7 +292,6 @@
   }
  ],
  "quick_entry": 1,
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

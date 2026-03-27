@@ -12,6 +12,8 @@ def execute(filters=None):
         {"label": "Debit", "fieldname": "debit", "fieldtype": "Currency", "width": 140},
         {"label": "Credit", "fieldname": "credit", "fieldtype": "Currency", "width": 140},
         # {"label": "Finance Book", "fieldname": "finance_book", "fieldtype": "Link", "options": "Finance Book", "width": 140},
+        {"label": "Cost Center", "fieldname": "cost_center", "fieldtype": "Link", "options": "Cost Center", "width": 140},
+        
     ]
 
     data = get_data(filters)
@@ -32,6 +34,8 @@ def get_data(filters):
     if filters.get("accounts"):
         accounts_list = [f"'{a.strip()}'" for a in filters.accounts]
         conditions.append(f"account IN ({','.join(accounts_list)})")
+    if filters.get("cost_center"):
+        conditions.append(f"cost_center='{filters.cost_center}'")
 	
 
 	
@@ -45,11 +49,11 @@ def get_data(filters):
             account,
             SUM(debit) as debit,
             SUM(credit) as credit,
-            finance_book
+            cost_center
         FROM `tabGL Entry`
         WHERE {where_clause}
-        GROUP BY fiscal_year, company, posting_date, account, finance_book
-        ORDER BY fiscal_year, company, posting_date, account
+        GROUP BY fiscal_year, company, posting_date, account, cost_center
+        ORDER BY fiscal_year, company, posting_date, account, cost_center
     """
 
     return frappe.db.sql(query, as_dict=True)
