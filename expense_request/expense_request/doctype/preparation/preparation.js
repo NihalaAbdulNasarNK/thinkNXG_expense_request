@@ -26,6 +26,7 @@ frappe.ui.form.on('Preparation', {
                             row.employee_name = emp.employee_name;
                             row.civil_id = emp.custom_civil_id;
                             row.renewal_or_extend = emp.renewal_or_extend;
+                            row.passport_no = emp.custom_passport_no
 
                             // Expiry Dates
                             row.acls_expiry_date = emp.work_permit_expiry_date;
@@ -33,6 +34,8 @@ frappe.ui.form.on('Preparation', {
                             row.residency_expiry_date = emp.residency_expiry_date;
                             row.civil_id_expiry_date = emp.civil_id_expiry_date;
                             row.mol_contract_expiry_date = emp.contract_expiry_date;
+                            row.passport_expiry_date = emp.custom_passport_expiry_date_;
+                            row.visa_date_of_expiry = emp.custom_visa_date_of_expiry;
 
                             // Amounts
                             row.acls_amount = emp.work_permit_amount;
