@@ -80,12 +80,14 @@ def fetch_employees_by_expiry_range(from_date, to_date):
         "Medical Insurance": "custom_medical_expiry_date",
         "Residency Stamp": "custom_bls_expiry_date",
         "Civil ID": "custom_civil_id_expiry_date",
-        "Contract": "custom_mol_contract_expiry_date"
+        "Contract": "custom_mol_contract_expiry_date",
+        "Passport": "custom_passport_expiry_date_",
+        "Visa": "custom_visa_date_of_expiry"    
     }
 
     employees = frappe.get_all(
         "Employee",
-        fields=["name", "employee_name", "custom_civil_id_no"] + list(expiry_fields.values()),
+        fields=["name", "employee_name", "custom_civil_id_no","custom_passport_no"] + list(expiry_fields.values()),
         # order_by="modified desc"
     )
 
@@ -143,8 +145,8 @@ def fetch_employees_by_expiry_range(from_date, to_date):
             "employee": emp.name,
             "employee_name": emp.employee_name,
             "custom_civil_id": emp.custom_civil_id_no,
-            "custom_visa_date_of_expiry": emp.custom_visa_date_of_expiry,
-            "custom_passport_expiry_date_":emp.custom_passport_expiry_date_,
+            "visa_date_of_expiry": None,
+            "passport_expiry_date_":None,
             "custom_passport_no":emp.custom_passport_no,
             "renewal_or_extend": "Renewal",
             "work_permit_expiry_date": None,
@@ -191,6 +193,11 @@ def fetch_employees_by_expiry_range(from_date, to_date):
                     elif category == "Contract":
                         employee_row["contract_expiry_date"] = expiry_date
                         employee_row["contract_amount"] = amount
+                    elif category == "Passport":
+                        employee_row["passport_expiry_date"] = expiry_date
+
+                    elif category == "Visa":
+                        employee_row["visa_date_of_expiry"] = expiry_date
 
         # Only add if at least one document is expiring in range
         if found:
