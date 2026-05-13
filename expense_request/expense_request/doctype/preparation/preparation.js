@@ -34,7 +34,7 @@ frappe.ui.form.on('Preparation', {
                             row.residency_expiry_date = emp.residency_expiry_date;
                             row.civil_id_expiry_date = emp.civil_id_expiry_date;
                             row.mol_contract_expiry_date = emp.contract_expiry_date;
-                            row.passport_expiry_date = emp.passport_expiry_date_;
+                            row.passport_expiry_date = emp.passport_expiry_date;
                             row.visa_date_of_expiry = emp.visa_date_of_expiry;
 
                             // Amounts
